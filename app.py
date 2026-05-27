@@ -14,14 +14,11 @@ st.config.set_option("server.maxUploadSize", 10)
 # Aesop 極簡美學高級 CSS
 st.markdown("""
     <style>
-    /* 全域背景與字型設定 - 象牙白與深炭黑 */
     .main { 
         background-color: #FAF9F6 !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif !important;
         color: #252525 !important;
     }
-    
-    /* 標題與內文間距拉寬，營造品牌沉靜感 */
     h1 { 
         font-weight: 300 !important; 
         letter-spacing: 0.08em !important; 
@@ -36,8 +33,6 @@ st.markdown("""
         border-bottom: 1px solid #EAE6DF;
         padding-bottom: 0.5rem;
     }
-    
-    /* 方正直角與細線條 */
     .stSelectbox div[data-baseweb="select"], .stDateInput div[data-baseweb="input"], .stNumberInput div[data-baseweb="input"], .stTextArea textarea {
         border-radius: 0px !important;
         border: 1px solid #333333 !important;
@@ -49,8 +44,6 @@ st.markdown("""
         border: 1px dashed #8E765D !important;
         background-color: #F5F4F0 !important;
     }
-    
-    /* 炭黑底白字品牌按鈕 */
     div.stButton > button {
         border-radius: 0px !important;
         background-color: #252525 !important;
@@ -66,8 +59,6 @@ st.markdown("""
         color: #252525 !important;
         border: 1px solid #252525 !important;
     }
-    
-    /* 內斂的自訂通知區塊 */
     .aesop-success {
         background-color: #EBF2EE !important;
         color: #2C5E3B !important;
@@ -95,10 +86,29 @@ st.markdown("""
         margin: 1rem 0;
         font-size: 0.9rem;
     }
+    .diff-display {
+        border: 1px solid #EAE6DF;
+        background-color: #F5F4F0;
+        padding: 10px 14px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: #252525;
+        letter-spacing: 0.05em;
+        height: 42px;
+        line-height: 22px;
+    }
+    
+    /* 💡 核心優化：徹底隱藏數字輸入框右側的加減（調整）按鈕 */
+    div[data-testid="stNumberInputStepDown"], div[data-testid="stNumberInputStepUp"] {
+        display: none !important;
+    }
+    /* 讓輸入文字區域填滿，避免右側留白過多 */
+    .stNumberInput div[data-baseweb="input"] {
+        padding-right: 0px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# 頁面標題改為品牌經典排版
 st.title("Aesop 零售店鋪對帳單元")
 st.markdown("<p style='letter-spacing:0.08em; color:#666666; font-size:0.85rem;'>RECONCILIATION AND RETAIL AUDIT PURSUIT</p>", unsafe_allow_html=True)
 st.write(" ")
@@ -129,7 +139,7 @@ def process_and_resize_image(uploaded_file):
         img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     return img
 
-# 建立左右 6:4 欄位
+# 左右分流佈局
 main_left, main_right = st.columns([6, 4])
 
 # --- 右半邊：對帳主控台 ---
@@ -150,24 +160,29 @@ with main_right:
         current_room = global_rooms[room_id]
         
         st.write(" ")
-        # 覆蓋與同步按鈕
         if st.button("同步雲端單據狀態", key="refresh_images_btn"):
             st.rerun()
             
         st.write("---")
         st.markdown("### 數值登錄")
-        fee_col1, fee_col2 = st.columns(2)
-        with fee_col1:
+        
+        input_col, output_col = st.columns(2)
+        
+        with input_col:
             mall_amount = st.number_input("百貨報表金額 (TWD)", min_value=0, step=1, value=0, key="amount_mall_input")
-        with fee_col2:
             cegid_amount = st.number_input("Cegid 系統金額 (TWD)", min_value=0, step=1, value=0, key="amount_cegid_input")
             
-        if mall_amount > 0 or cegid_amount > 0:
+        with output_col:
             diff = mall_amount - cegid_amount
+            st.markdown("<label style='font-size:0.85rem; color:#FAF9F6;'>Placeholder</label>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size:0.85rem; margin-bottom:8px; color:#252525;'>今日帳差</p>", unsafe_allow_html=True)
+            st.markdown(f'<div class="diff-display">{diff:,.0f}</div>', unsafe_allow_html=True)
+            
+        if mall_amount > 0 or cegid_amount > 0:
             if diff == 0:
                 st.markdown(f'<div class="aesop-success">雙端數值一致，務請截圖留存以茲核備。</div>', unsafe_allow_html=True)
             else:
-                st.markdown(f'<div class="aesop-error">帳面未盡相符。當前差額： {diff:,.0f} 元</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="aesop-error">帳面未盡相符。</div>', unsafe_allow_html=True)
                 diff_reason = st.text_area("請闡述帳差原因", placeholder="請以此處紀錄異常緣由...", key="reason_text_input")
                 if diff_reason:
                     st.markdown(f'<div class="aesop-success">原因已載入。請直接將此畫面截圖存檔。</div>', unsafe_allow_html=True)
@@ -185,7 +200,6 @@ with main_left:
     if shop_name != "請選擇":
         current_room = global_rooms[room_id]
         
-        # 單一上傳框
         uploaded_file = st.file_uploader("檔案上傳 (最大限制 10MB)", type=["png", "jpg", "jpeg"], key="single_file_key")
         if uploaded_file:
             current_room["img_single"] = process_and_resize_image(uploaded_file)
@@ -193,7 +207,6 @@ with main_left:
                 
         st.write(" ")
         
-        # 顯示圖片狀態與映像
         if current_room.get("img_single") is not None:
             st.markdown('<div class="aesop-success" style="margin-top:0px;">對帳單據已於雲端就位。</div>', unsafe_allow_html=True)
             st.image(current_room["img_single"], caption="AUDIT REPORT IMAGE", use_container_width=True)
