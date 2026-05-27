@@ -1,7 +1,8 @@
 import streamlit as st
 from PIL import Image, ImageOps
+from streamlit_autorefresh import st_autorefresh # 引入自動刷新套件
 
-# 1. 網頁基本設定 (設定為寬螢幕模式、隱藏原本的側邊欄)
+# 1. 網頁基本設定
 st.set_page_config(
     page_title="Aesop Style Audit Tool", 
     layout="wide",
@@ -11,17 +12,18 @@ st.set_page_config(
 # 限制上傳檔案大小為 10MB
 st.config.set_option("server.maxUploadSize", 10)
 
-# 🎨 核心：極致復刻 Aesop 視覺風格的進階 CSS
+# 🔄 核心功能：每 3000 毫秒（3秒）自動在背景整理一次網頁，達到即時同步效果
+# key="reconciliation_refresh" 是為了確保定時器穩定運作
+st_autorefresh(interval=3000, key="reconciliation_refresh")
+
+# Aesop 視覺風格 CSS
 st.markdown("""
     <style>
-    /* 全域背景與字型設定 - 象牙白與深炭黑 */
     .main { 
         background-color: #FAF9F6 !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif !important;
         color: #252525 !important;
     }
-    
-    /* 標題與內文間距拉寬，製造高級知識分子感 */
     h1 { 
         font-weight: 300 !important; 
         letter-spacing: 0.08em !important; 
@@ -33,30 +35,24 @@ st.markdown("""
         letter-spacing: 0.06em !important; 
         color: #333333 !important;
         font-size: 1.2rem !important;
-        border-bottom: 1px solid #EAE6DF; /* 淡淡的泥土灰分隔線 */
+        border-bottom: 1px solid #EAE6DF;
         padding-bottom: 0.5rem;
     }
-    
-    /* 輸入框與下拉選單 - 100% 方正直角、細黑框 (Aesop經典) */
     .stSelectbox div[data-baseweb="select"], .stDateInput div[data-baseweb="input"], .stNumberInput div[data-baseweb="input"], .stTextArea textarea {
-        border-radius: 0px !important; /* 徹底去除圓角 */
-        border: 1px solid #333333 !important; /* 方正細框 */
+        border-radius: 0px !important;
+        border: 1px solid #333333 !important;
         background-color: #FAF9F6 !important;
         color: #252525 !important;
     }
-    
-    /* 上傳檔案區域方正化 */
     .stFileUploader section {
         border-radius: 0px !important;
-        border: 1px dashed #8E765D !important; /* 琥珀色虛線框 */
+        border: 1px dashed #8E765D !important;
         background-color: #F5F4F0 !important;
     }
-    
-    /* 核心：Aesop 經典極簡黑底白字直角按鈕 */
     div.stButton > button {
-        border-radius: 0px !important; /* 直角 */
-        background-color: #252525 !important; /* 深炭黑底 */
-        color: #FAF9F6 !important; /* 象牙白字 */
+        border-radius: 0px !important;
+        background-color: #252525 !important;
+        color: #FAF9F6 !important;
         border: 1px solid #252525 !important;
         padding: 0.6rem 2rem !important;
         letter-spacing: 0.1em !important;
@@ -64,15 +60,13 @@ st.markdown("""
         width: 100%;
     }
     div.stButton > button:hover {
-        background-color: #FAF9F6 !important; /* 懸停時反轉成白底黑字 */
+        background-color: #FAF9F6 !important;
         color: #252525 !important;
         border: 1px solid #252525 !important;
     }
-    
-    /* 內斂的自訂通知區塊 (取代Streamlit原本刺眼的紅綠色) */
     .aesop-success {
         background-color: #EBF2EE !important;
-        color: #2C5E3B !important; /* 草本暗綠 */
+        color: #2C5E3B !important;
         padding: 1rem;
         border-left: 3px solid #2C5E3B;
         letter-spacing: 0.05em;
@@ -80,7 +74,7 @@ st.markdown("""
     }
     .aesop-error {
         background-color: #F9F1F0 !important;
-        color: #9E473A !important; /* 磚土暗紅 */
+        color: #9E473A !important;
         padding: 1rem;
         border-left: 3px solid #9E473A;
         letter-spacing: 0.05em;
@@ -96,7 +90,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 頁面大標題
 st.title("Aesop — 零售對帳與審核單元")
 st.markdown("<p style='letter-spacing:0.05em; color:#666666; font-size:0.9rem;'>ELEGANT REAL-TIME RECONCILIATION • PILOT VERSION</p>", unsafe_allow_html=True)
 st.write(" ")
@@ -127,10 +120,10 @@ def process_and_resize_image(uploaded_file):
         img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     return img
 
-# 建立左右 6:4 分流排版
+# 左右並排排版
 main_left, main_right = st.columns([6, 4])
 
-# --- 右半邊：對帳主控台與金額輸入 ---
+# --- 右半邊：對帳主控台 ---
 with main_right:
     st.markdown("### 🔍 填寫對帳範疇")
     
@@ -155,31 +148,27 @@ with main_right:
         with fee_col2:
             cegid_amount = st.number_input("Cegid 系統金額 (TWD)", min_value=0, step=1, value=0)
             
-        # 金額判定邏輯 (改用優雅的 Aesop 客製化橫條通知)
         if mall_amount > 0 or cegid_amount > 0:
             diff = mall_amount - cegid_amount
-            
             if diff == 0:
                 st.markdown(f'<div class="aesop-success">✅ 金額完全相符。此案准予結案，請進行螢幕截圖。</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="aesop-error">❌ 偵測到帳面誤差。目前差額： {diff:,.0f} 元</div>', unsafe_allow_html=True)
-                diff_reason = st.text_area("請闡述帳差原因 (必要填寫)", placeholder="例如：百貨刷卡手續費扣抵 / 顧客跨日退貨未同步...")
+                diff_reason = st.text_area("請闡述帳差原因 (必要填寫)", placeholder="例如：百貨刷卡手續費扣抵...")
                 if diff_reason:
                     st.markdown(f'<div class="aesop-success">⚠️ 帳差原因已載入。請直接截圖此畫面存檔。</div>', unsafe_allow_html=True)
         
-        # 徹底銷毀按鈕
         st.write(" ")
         st.write(" ")
         if st.button("🗑️ 徹底清除此店鋪今日雲端暫存"):
             global_rooms[room_id] = {"img_mall": None, "img_cegid": None}
             st.rerun()
 
-# --- 左半邊：單據比對區 (照片) ---
+# --- 左半邊：單據比對區 ---
 with main_left:
     st.markdown("### 📸 單據映像比對")
     
     if shop_name != "請選擇":
-        # 上傳按鈕
         up_col1, up_col2 = st.columns(2)
         with up_col1:
             uploaded_mall = st.file_uploader("上傳百貨照片 (最大 10MB)", type=["png", "jpg", "jpeg"], key="mall_upload")
@@ -194,7 +183,6 @@ with main_left:
                 
         st.write(" ")
         
-        # 顯示圖片並排
         view_col1, view_col2 = st.columns(2)
         with view_col1:
             if current_room["img_mall"] is not None:
