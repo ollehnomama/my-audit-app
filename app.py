@@ -44,6 +44,8 @@ st.markdown("""
         border: 1px dashed #8E765D !important;
         background-color: #F5F4F0 !important;
     }
+    
+    /* 大按鈕樣式優化 - 炭黑底白字 */
     div.stButton > button {
         border-radius: 0px !important;
         background-color: #252525 !important;
@@ -59,6 +61,7 @@ st.markdown("""
         color: #252525 !important;
         border: 1px solid #252525 !important;
     }
+    
     .aesop-success {
         background-color: #EBF2EE !important;
         color: #2C5E3B !important;
@@ -76,9 +79,10 @@ st.markdown("""
         margin: 1rem 0;
     }
     .aesop-info {
-        background-color: #F1EFFB !important;
-        color: #4A3E7D !important;
+        background-color: #F5F4F0 !important;
+        color: #8E765D !important;
         padding: 1rem;
+        border-left: 3px solid #8E765D;
         letter-spacing: 0.05em;
         margin: 1rem 0;
     }
@@ -86,7 +90,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("Aesop — 零售對帳與審核單元")
-st.markdown("<p style='letter-spacing:0.05em; color:#666666; font-size:0.9rem;'>ELEGANT REAL-TIME RECONCILIATION • PILOT VERSION</p>", unsafe_allow_html=True)
+st.markdown("<p style='letter-spacing:0.05em; color:#666666; font-size:0.9rem;'>ELEGANT REAL-TIME RECONCILIATION • STABLE VERSION</p>", unsafe_allow_html=True)
 st.write(" ")
 
 # 2. 全伺服器共享的臨時記憶置物櫃
@@ -96,7 +100,7 @@ def get_global_rooms():
 
 global_rooms = get_global_rooms()
 
-# 圖片等比例縮放
+# 圖片等比例優化縮放
 def process_and_resize_image(uploaded_file):
     img = Image.open(uploaded_file)
     try:
@@ -118,7 +122,7 @@ def process_and_resize_image(uploaded_file):
 # 建立左右 6:4 欄位
 main_left, main_right = st.columns([6, 4])
 
-# --- 右半邊：對帳主控台 (100% 鎖定，打字絕對不會重疊或被洗掉) ---
+# --- 右半邊：對帳主控台 ---
 with main_right:
     st.markdown("### 🔍 填寫對帳範疇")
     
@@ -136,6 +140,11 @@ with main_right:
         current_room = global_rooms[room_id]
         
         st.write(" ")
+        # 💡 電腦端核心按鈕：按一下，瞬間同步最新照片，100% 不卡死
+        if st.button("🔄 檢查並載入雲端單據圖片", key="refresh_images_btn"):
+            st.rerun()
+            
+        st.write("---")
         st.markdown("### 💰 輸入系統金額")
         fee_col1, fee_col2 = st.columns(2)
         with fee_col1:
@@ -159,54 +168,39 @@ with main_right:
             global_rooms[room_id] = {"img_mall": None, "img_cegid": None}
             st.rerun()
 
-# --- 左半邊：單據比對區 (局部智慧監聽艙) ---
+# --- 左半邊：單據比對區 (移除了所有定時重新整理，回歸純淨、穩定) ---
 with main_left:
     st.markdown("### 📸 單據映像比對")
     
     if shop_name != "請選擇":
+        current_room = global_rooms[room_id]
         
-        # 建立隔離艙：只有這裡會背景重新整理
-        @st.fragment
-        def image_monitor_hub():
-            current_room = global_rooms[room_id]
-            
-            # 💡 核心邏輯：如果兩張照片只要有任何一張「還是空的」，這個艙房每 4 秒就偷偷刷一次，直到照片進來為止
-            if current_room["img_mall"] is None or current_room["img_cegid"] is None:
-                from streamlit_autorefresh import st_autorefresh
-                st_autorefresh(interval=4000, key="fragment_monitor_refresh")
-            
-            up_col1, up_col2 = st.columns(2)
-            with up_col1:
-                uploaded_mall = st.file_uploader("上傳百貨照片", type=["png", "jpg", "jpeg"], key="mall_file_key")
-                if uploaded_mall:
-                    current_room["img_mall"] = process_and_resize_image(uploaded_mall)
-                    st.rerun()
-            with up_col2:
-                uploaded_cegid = st.file_uploader("上傳 Cegid 照片", type=["png", "jpg", "jpeg"], key="cegid_file_key")
-                if uploaded_cegid:
-                    current_room["img_cegid"] = process_and_resize_image(uploaded_cegid)
-                    st.rerun()
-                    
-            st.write(" ")
-            
-            # 🔔 通知區：如果收到照片，立刻跳出優雅的 Aesop 綠色通知！
-            if current_room["img_mall"] is not None and current_room["img_cegid"] is not None:
-                st.markdown('<div class="aesop-success" style="margin-top:0px; margin-bottom:15px;">🔔 系統提示：手機端已成功同步上傳雙端單據，請開始比對金額。</div>', unsafe_allow_html=True)
-            
-            view_col1, view_col2 = st.columns(2)
-            with view_col1:
-                if current_room["img_mall"] is not None:
-                    st.image(current_room["img_mall"], caption="MALL REPORT IMAGE", use_container_width=True)
-                else:
-                    st.markdown('<div class="aesop-info" style="font-size:0.85rem; text-align:center;">⏳ 靜待百貨單據上傳... (系統自動偵測中)</div>', unsafe_allow_html=True)
-            with view_col2:
-                if current_room["img_cegid"] is not None:
-                    st.image(current_room["img_cegid"], caption="CEGID SYSTEM IMAGE", use_container_width=True)
-                else:
-                    st.markdown('<div class="aesop-info" style="font-size:0.85rem; text-align:center;">⏳ 靜待 Cegid 畫面截圖... (系統自動偵測中)</div>', unsafe_allow_html=True)
-
-        # 啟動智慧艙
-        image_monitor_hub()
+        up_col1, up_col2 = st.columns(2)
+        with up_col1:
+            uploaded_mall = st.file_uploader("上傳百貨照片", type=["png", "jpg", "jpeg"], key="mall_file_key")
+            if uploaded_mall:
+                current_room["img_mall"] = process_and_resize_image(uploaded_mall)
+                st.rerun()
+        with up_col2:
+            uploaded_cegid = st.file_uploader("上傳 Cegid 照片", type=["png", "jpg", "jpeg"], key="cegid_file_key")
+            if uploaded_cegid:
+                current_room["img_cegid"] = process_and_resize_image(uploaded_cegid)
+                st.rerun()
+                
+        st.write(" ")
         
+        # 狀態提示語
+        if current_room["img_mall"] is not None and current_room["img_cegid"] is not None:
+            st.markdown('<div class="aesop-success" style="margin-top:0px;">🟢 雙端單據已成功在雲端就位。</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="aesop-info" style="margin-top:0px;">⏳ 靜待單據上傳中。手機端傳完後，請點擊右側的 [🔄 檢查並載入雲端單據圖片] 按鈕。</div>', unsafe_allow_html=True)
+            
+        view_col1, view_col2 = st.columns(2)
+        with view_col1:
+            if current_room["img_mall"] is not None:
+                st.image(current_room["img_mall"], caption="MALL REPORT IMAGE", use_container_width=True)
+        with view_col2:
+            if current_room["img_cegid"] is not None:
+                st.image(current_room["img_cegid"], caption="CEGID SYSTEM IMAGE", use_container_width=True)
     else:
         st.markdown('<div class="aesop-error">👈 請先於右側面板選擇【店鋪名稱】以開啟對帳作業。</div>', unsafe_allow_html=True)
