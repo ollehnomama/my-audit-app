@@ -98,13 +98,21 @@ st.markdown("""
         line-height: 22px;
     }
     
-    /* 💡 核心優化：徹底隱藏數字輸入框右側的加減（調整）按鈕 */
-    div[data-testid="stNumberInputStepDown"], div[data-testid="stNumberInputStepUp"] {
+    /* 💡 終極強制手段：將數字輸入框元件內部的所有原生按鈕全部消滅 */
+    .stNumberInput button {
         display: none !important;
     }
-    /* 讓輸入文字區域填滿，避免右側留白過多 */
-    .stNumberInput div[data-baseweb="input"] {
-        padding-right: 0px !important;
+    /* 移除因為按鈕消失而產生的內部右側預留邊距 */
+    .stNumberInput input {
+        padding-right: 12px !important;
+    }
+    /* 去除瀏覽器原生可能帶有的微調箭頭 */
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
     }
     </style>
 """, unsafe_allow_html=True)
