@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#8E765D"       # 品牌點綴色：暖調琥珀金
+backgroundColor = "#FAF9F6"    # 全域背景色：Aesop 象牙白
+secondaryBackgroundColor = "#F5F4F0" # 欄位背景色：岩石淺灰
+textColor = "#252525"          # 全域文字色：暗炭黑
+font = "sans serif"            # 乾淨的無襯線字體
