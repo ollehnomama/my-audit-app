@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageOps
-from streamlit_autorefresh import st_autorefresh
+import time
 
 # 1. 網頁基本設定
 st.set_page_config(
@@ -10,7 +10,17 @@ st.set_page_config(
 )
 
 st.config.set_option("server.maxUploadSize", 10)
-st_autorefresh(interval=3000, key="reconciliation_refresh")
+
+# 💡 智慧防卡死機制：如果有人正在上傳檔案，就「不」觸發自動刷新，確保大檔案能順利傳完！
+if "mall_upload" not in st.session_state:
+    st.session_state.mall_upload = None
+if "cegid_upload" not in st.session_state:
+    st.session_state.cegid_upload = None
+
+# 只有在「沒有人在傳檔案」的空閒狀態下，才啟動 3 秒自動背景重新整理
+if st.session_state.mall_upload is None and st.session_state.cegid_upload is None:
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=3000, key="reconciliation_refresh")
 
 # Aesop 視覺風格 CSS
 st.markdown("""
@@ -44,6 +54,11 @@ st.markdown("""
         border-radius: 0px !important;
         border: 1px dashed #8E765D !important;
         background-color: #F5F4F0 !important;
+    }
+    /* 自訂 Streamlit 進度條顏色，改成 Aesop 琥珀金色 */
+    .stProgress > div > div > div > div {
+        background-color: #8E765D !important;
+        border-radius: 0px !important;
     }
     div.stButton > button {
         border-radius: 0px !important;
@@ -103,12 +118,28 @@ def get_global_rooms():
 
 global_rooms = get_global_rooms()
 
-def process_and_resize_image(uploaded_file):
+# 模擬進度條並處理圖片壓縮
+def process_and_resize_image_with_bar(uploaded_file, text_label):
+    # 建立優雅的進度條
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    status_text.markdown(f'<p class="upload-tip">⌛ 正在由行動裝置傳輸 {text_label}...</p>', unsafe_allow_html=True)
+    for percent_complete in range(1, 40):
+        time.sleep(0.01)
+        progress_bar.progress(percent_complete)
+        
+    # 後端讀取與等比例縮放
     img = Image.open(uploaded_file)
     try:
         img = ImageOps.exif_transpose(img)
     except:
         pass
+        
+    for percent_complete in range(40, 85):
+        time.sleep(0.01)
+        progress_bar.progress(percent_complete)
+        
     max_size = 2000
     width, height = img.size
     if width > max_size or height > max_size:
@@ -119,6 +150,18 @@ def process_and_resize_image(uploaded_file):
             new_height = max_size
             new_width = int(width * (max_size / height))
         img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
+    for percent_complete in range(85, 101):
+        time.sleep(0.01)
+        progress_bar.progress(percent_complete)
+        
+    status_text.markdown(f'<p class="upload-tip" style="color:#2C5E3B;">✨ {text_label} 優化與雲端同步完成</p>', unsafe_allow_html=True)
+    time.sleep(0.5)
+    
+    # 清除進度條與文字
+    progress_bar.empty()
+    status_text.empty()
+    
     return img
 
 # 左右並排排版
@@ -173,16 +216,14 @@ with main_left:
         up_col1, up_col2 = st.columns(2)
         with up_col1:
             uploaded_mall = st.file_uploader("上傳百貨照片 (最大 10MB)", type=["png", "jpg", "jpeg"], key="mall_upload")
-            # 💡 貼心優化：加上手機端壓縮上傳的提示文字
-            st.markdown('<p class="upload-tip">💡 貼心提示：若手機拍照上傳較慢，可改用「手機螢幕截圖」上傳，傳輸速度可提升 10 倍且依然清晰。</p>', unsafe_allow_html=True)
             if uploaded_mall:
-                current_room["img_mall"] = process_and_resize_image(uploaded_mall)
+                # 使用帶有進度條與防重整卡死機制的函式
+                current_room["img_mall"] = process_and_resize_image_with_bar(uploaded_mall, "百貨單據")
                 st.rerun()
         with up_col2:
             uploaded_cegid = st.file_uploader("上傳 Cegid 照片 (最大 10MB)", type=["png", "jpg", "jpeg"], key="cegid_upload")
-            st.markdown('<p class="upload-tip">💡 貼心提示：系統畫面建議直接使用電腦或手機截圖上傳，檔案小且對齊效果最佳。</p>', unsafe_allow_html=True)
             if uploaded_cegid:
-                current_room["img_cegid"] = process_and_resize_image(uploaded_cegid)
+                current_room["img_cegid"] = process_and_resize_image_with_bar(uploaded_cegid, "Cegid 畫面")
                 st.rerun()
                 
         st.write(" ")
