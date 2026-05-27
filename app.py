@@ -98,15 +98,13 @@ st.markdown("""
         line-height: 22px;
     }
     
-    /* 💡 終極強制手段：將數字輸入框元件內部的所有原生按鈕全部消滅 */
+    /* 強制拔除加減微調按鈕 */
     .stNumberInput button {
         display: none !important;
     }
-    /* 移除因為按鈕消失而產生的內部右側預留邊距 */
     .stNumberInput input {
         padding-right: 12px !important;
     }
-    /* 去除瀏覽器原生可能帶有的微調箭頭 */
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
         -webkit-appearance: none;
         margin: 0;
@@ -156,7 +154,12 @@ with main_right:
     
     col_shop, col_date = st.columns(2)
     with col_shop:
-        shop_name = st.selectbox("指定店鋪", ["請選擇", "台北信義店", "台中中友店", "高雄漢神店", "南西誠品店"], key="main_shop_select")
+        # 更換為指定的高雄三家店鋪
+        shop_name = st.selectbox(
+            "指定店鋪", 
+            ["請選擇", "Aesop 高雄漢神巨蛋店", "Aesop 高雄漢神店", "Aesop 高雄義享天地"], 
+            key="main_shop_select"
+        )
     with col_date:
         target_date = st.date_input("對帳日期", key="main_date_select")
 
@@ -177,16 +180,22 @@ with main_right:
         input_col, output_col = st.columns(2)
         
         with input_col:
-            mall_amount = st.number_input("百貨報表金額 (TWD)", min_value=0, step=1, value=0, key="amount_mall_input")
-            cegid_amount = st.number_input("Cegid 系統金額 (TWD)", min_value=0, step=1, value=0, key="amount_cegid_input")
+            # 💡 關鍵改動：將 value 設為 None，讓框框初始保持全空，不會預留 0
+            mall_amount = st.number_input("百貨報表金額 (TWD)", min_value=0, step=1, value=None, key="amount_mall_input")
+            cegid_amount = st.number_input("Cegid 系統金額 (TWD)", min_value=0, step=1, value=None, key="amount_cegid_input")
             
         with output_col:
-            diff = mall_amount - cegid_amount
+            # 安全處理空值計算
+            calc_mall = mall_amount if mall_amount is not None else 0
+            calc_cegid = cegid_amount if cegid_amount is not None else 0
+            diff = calc_mall - calc_cegid
+            
             st.markdown("<label style='font-size:0.85rem; color:#FAF9F6;'>Placeholder</label>", unsafe_allow_html=True)
             st.markdown("<p style='font-size:0.85rem; margin-bottom:8px; color:#252525;'>今日帳差</p>", unsafe_allow_html=True)
             st.markdown(f'<div class="diff-display">{diff:,.0f}</div>', unsafe_allow_html=True)
             
-        if mall_amount > 0 or cegid_amount > 0:
+        # 只有在有輸入數值時才呈現狀態判斷
+        if mall_amount is not None or cegid_amount is not None:
             if diff == 0:
                 st.markdown(f'<div class="aesop-success">雙端數值一致，務請截圖留存以茲核備。</div>', unsafe_allow_html=True)
             else:
