@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageOps
-from streamlit_autorefresh import st_autorefresh # 引入自動刷新套件
+from streamlit_autorefresh import st_autorefresh
 
 # 1. 網頁基本設定
 st.set_page_config(
@@ -9,11 +9,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 限制上傳檔案大小為 10MB
 st.config.set_option("server.maxUploadSize", 10)
-
-# 🔄 核心功能：每 3000 毫秒（3秒）自動在背景整理一次網頁，達到即時同步效果
-# key="reconciliation_refresh" 是為了確保定時器穩定運作
 st_autorefresh(interval=3000, key="reconciliation_refresh")
 
 # Aesop 視覺風格 CSS
@@ -87,6 +83,13 @@ st.markdown("""
         letter-spacing: 0.05em;
         margin: 1rem 0;
     }
+    .upload-tip {
+        font-size: 0.8rem;
+        color: #8E765D;
+        letter-spacing: 0.03em;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -94,14 +97,12 @@ st.title("Aesop — 零售對帳與審核單元")
 st.markdown("<p style='letter-spacing:0.05em; color:#666666; font-size:0.9rem;'>ELEGANT REAL-TIME RECONCILIATION • PILOT VERSION</p>", unsafe_allow_html=True)
 st.write(" ")
 
-# 2. 全伺服器共享的臨時記憶置物櫃
 @st.cache_resource
 def get_global_rooms():
     return {}
 
 global_rooms = get_global_rooms()
 
-# 智慧圖片等比例縮放函式
 def process_and_resize_image(uploaded_file):
     img = Image.open(uploaded_file)
     try:
@@ -172,11 +173,14 @@ with main_left:
         up_col1, up_col2 = st.columns(2)
         with up_col1:
             uploaded_mall = st.file_uploader("上傳百貨照片 (最大 10MB)", type=["png", "jpg", "jpeg"], key="mall_upload")
+            # 💡 貼心優化：加上手機端壓縮上傳的提示文字
+            st.markdown('<p class="upload-tip">💡 貼心提示：若手機拍照上傳較慢，可改用「手機螢幕截圖」上傳，傳輸速度可提升 10 倍且依然清晰。</p>', unsafe_allow_html=True)
             if uploaded_mall:
                 current_room["img_mall"] = process_and_resize_image(uploaded_mall)
                 st.rerun()
         with up_col2:
             uploaded_cegid = st.file_uploader("上傳 Cegid 照片 (最大 10MB)", type=["png", "jpg", "jpeg"], key="cegid_upload")
+            st.markdown('<p class="upload-tip">💡 貼心提示：系統畫面建議直接使用電腦或手機截圖上傳，檔案小且對齊效果最佳。</p>', unsafe_allow_html=True)
             if uploaded_cegid:
                 current_room["img_cegid"] = process_and_resize_image(uploaded_cegid)
                 st.rerun()
