@@ -11,16 +11,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("⚖️ 即時對帳與審核系統 (跨裝置同步版)")
+st.title("⚖️ 即時對帳與審核系統 (官方同步版)")
 st.caption("隨用隨清 • 跨裝置同步 • 不儲存資料庫")
 st.write("---")
 
-# 2. 建立【全伺服器共享】的臨時記憶置物櫃
-if "global_rooms" not in st.sidebar.__self__.dict():
-    # 這是技巧：將資料掛在 Streamlit 的全域底層，讓手機與電腦可以互通
-    st.sidebar.__self__.dict()["global_rooms"] = {}
+# 2. 官方推薦：建立全伺服器共享的臨時記憶置物櫃
+@st.cache_resource
+def get_global_rooms():
+    return {}
 
-global_rooms = st.sidebar.__self__.dict()["global_rooms"]
+global_rooms = get_global_rooms()
 
 # 讓使用者選擇店鋪與日期，組合出臨時房間代碼
 col_shop, col_date = st.columns(2)
@@ -44,14 +44,13 @@ if shop_name != "請選擇":
     
     with img_col1:
         st.markdown("**【百貨系統截圖 / 發票】**")
-        # 顯示目前雲端已有的圖片狀態
         if current_room["img_mall"] is not None:
             st.success("🟢 雲端已有百貨照片")
         
         uploaded_mall = st.file_uploader("選擇或拍攝百貨照片", type=["png", "jpg", "jpeg"], key="mall_upload")
         if uploaded_mall:
             img = Image.open(uploaded_mall)
-            img.thumbnail((2000, 2000)) # 高畫質壓縮
+            img.thumbnail((2000, 2000)) # 高畫質
             current_room["img_mall"] = img
             st.rerun()
 
@@ -63,7 +62,7 @@ if shop_name != "請選擇":
         uploaded_cegid = st.file_uploader("選擇或拍攝 Cegid 照片", type=["png", "jpg", "jpeg"], key="cegid_upload")
         if uploaded_cegid:
             img = Image.open(uploaded_cegid)
-            img.thumbnail((2000, 2000)) # 高畫質壓縮
+            img.thumbnail((2000, 2000)) # 高畫質
             current_room["img_cegid"] = img
             st.rerun()
 
