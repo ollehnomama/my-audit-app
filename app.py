@@ -136,7 +136,7 @@ with main_right:
 
     if shop_name != "請選擇":
         if room_id not in global_rooms:
-            global_rooms[room_id] = {"img_single": None} # 改為單一圖片容器
+            global_rooms[room_id] = {"img_single": None}
         current_room = global_rooms[room_id]
         
         st.write(" ")
@@ -168,7 +168,7 @@ with main_right:
             global_rooms[room_id] = {"img_single": None}
             st.rerun()
 
-# --- 左半邊：單據比對區 (單圖極速版) ---
+# --- 左半邊：單據比對區 ---
 with main_left:
     st.markdown("### 📸 單據映像比對")
     
@@ -183,10 +183,9 @@ with main_left:
                 
         st.write(" ")
         
-        # 顯示圖片狀態
-        if current_room["img_single"] is not None:
+        # 💡 核心修正：使用 .get() 的防呆機制，若快取尚未建立也不會當機
+        if current_room.get("img_single") is not None:
             st.markdown('<div class="aesop-success" style="margin-top:0px;">🟢 對帳單據已成功在雲端就位。</div>', unsafe_allow_html=True)
-            # 大圖展開顯示
             st.image(current_room["img_single"], caption="AUDIT REPORT IMAGE", use_container_width=True)
         else:
             st.markdown('<div class="aesop-info" style="margin-top:0px;">⏳ 靜待單據上傳中。手機端傳完後，請點擊右側的 [🔄 檢查並載入雲端單據圖片] 按鈕。</div>', unsafe_allow_html=True)
